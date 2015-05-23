@@ -1,6 +1,6 @@
 __author__ = 'Carl-Admin'
 import random
-
+import AIs
 
 class Card:
     cost = 0
@@ -380,21 +380,47 @@ class Piles:
 class Game:
     players = []
     ais = []
-    curr_player = -1
-    game_pile = None
-    round = 0
-    finished = False
 
-    def __init__(self, players,prints):
+
+
+
+
+    def __init__(self, players,ai_type, prints):
         self.game_pile = Piles(players)
         self.players = []
         self.round = 0
+        self.finished = False
         for i in range(players):
             self.players.append(Player(self.game_pile,prints))
+        self.init_ai(ai_type)
         self.curr_player = 0
 
-    def setAis(self, ais):
-        self.ais = ais
+    def init_ai(self, ai_type):
+        self.ais = []
+        j = 0
+        for i in ai_type:
+            if i == 0:
+                self.ais.append(AIs.Person(j,self))
+            elif i == 1:
+                self.ais.append(AIs.BM_64_Basic(j,self))
+            elif i == 2:
+                self.ais.append(AIs.BMSmithy(j,self))
+            else:
+                raise "Invalid ai"
+            j += 1
+
+    def play_game(self):
+        while  not self.finished:
+            self.next_player_turn()
+            self.end_turn()
+        print("GAME OVER")
+        print(self.get_winner())
+
+
+
+    def next_player_turn(self):
+        self.ais[self.curr_player].do_turn()
+        self.end_turn()
 
     def do_militia(self, play_num):
         for i in range(len(self.players)):
@@ -445,7 +471,6 @@ class Game:
 
             return loc
         return -2
-
 
 
 
