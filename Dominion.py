@@ -386,10 +386,11 @@ class Game:
 
 
     def __init__(self, players,ai_type, prints):
+        self.started = False
         self.game_pile = Piles(players)
-        self.players = []
         self.round = 0
         self.finished = False
+        self.players = []
         for i in range(players):
             self.players.append(Player(self.game_pile,prints))
         self.init_ai(ai_type)
@@ -410,15 +411,33 @@ class Game:
             j += 1
 
     def play_game(self):
+        if self.started:
+            self.restart()
+
         while  not self.finished:
             self.next_player_turn()
             self.end_turn()
         print("GAME OVER")
         print(self.get_winner())
 
+    def restart(self):
+        length = len(self.players)
+        self.game_pile = Piles(length)
+        self.round = 0
+        self.finished = False
+        self.players = []
+        for i in range(length):
+            self.players.append(Player(self.game_pile,self.prints))
+        self.restart_ai()
+        self.curr_player = 0
 
+    def restart_ai(self):
+        for i in self.ais:
+            i.restart_ai()
 
     def next_player_turn(self):
+        if not self.started:
+            self.started = True
         self.ais[self.curr_player].do_turn()
         self.end_turn()
 
