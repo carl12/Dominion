@@ -136,14 +136,17 @@ class BMSmithy(Ai):
         self.prov = 0
 
     def do_turn(self):
+
         loc = self.has_smithy()
         if loc >= 0:
             self.player.play(loc)
         self.player.add_treasure()
         money = self.player.money
+
+        print(self.player.money, "is moneys")
+        print(self.player.cards.deck)
         if money >= 8:
             self.player.buy(self.player, 15)
-
             self.prov += 1
             self.vp_cards[2] += 1
         elif money >= 6:
