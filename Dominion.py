@@ -277,10 +277,7 @@ class Player:
     def end_turn(self):
         self.cards.discard_hand()
         self.cards.draw5()
-        print(self.money,"asdf")
         self.money = 0
-        print("asdf")
-
         self.buys = 1
         self.actions = 1
 
@@ -323,26 +320,25 @@ class Player:
 
     def buy(self, game, n):
         card = game.game_pile.card_piles[n]
-        print("buying",card)
         if self.money >= card.cost and self.buys > 0:
             if game.game_pile.is_remaining(n):
                 self.buys -= 1
                 self.money -= card.cost
                 self.cards.discards.append(card)
                 self.vp += card.vp
-                print(card)
-            else:
-                print(game.game_pile.is_remaining(n))
-                raise "Cards out"
 
     def get_points(self):
         return self.cards.get_points()
 
 
 class Piles:
+    card_piles = []
+    card_remaining = []
+    card_loc = []
+    building_loc = {}
 
-
-
+    exhausted_piles = 0
+    trash = []
     default_buildings = [Cellar(), Moat(), Village(), Woodcutter(), Workshop(), Militia(), Remodel(), Smithy(), Market(),
                      Mine()]
     default_loc = {"Cellar": 0, "Moat": 1, "Village": 2, "Woodcutter": 3, "Workshop": 4, "Militia": 5, "Remodel": 6,
@@ -352,11 +348,6 @@ class Piles:
 
     def __init__(self, player_num, buildings = default_buildings,):
 
-        self.card_loc = []
-        self.building_loc = {}
-
-        self.exhausted_piles = 0
-        self.trash = []
         self.card_remaining = []
         self.card_piles = buildings.copy()
         for x in range(len(buildings)):
@@ -378,7 +369,6 @@ class Piles:
         self.exhausted_piles = 0
 
     def is_remaining(self, n):
-        print("remaining: " ,self.card_remaining)
         if self.card_remaining[n] > 0:
             self.card_remaining[n] -= 1
             if self.card_remaining == 0:
@@ -391,12 +381,15 @@ class Game:
     players = []
     ais = []
 
+
+
+
+
     def __init__(self, players,ai_type, prints):
-        self.started = False
         self.game_pile = Piles(players)
+        self.players = []
         self.round = 0
         self.finished = False
-        self.players = []
         for i in range(players):
             self.players.append(Player(self.game_pile,prints))
         self.init_ai(ai_type)
@@ -417,32 +410,15 @@ class Game:
             j += 1
 
     def play_game(self):
-        if self.started:
-            self.restart()
-
         while  not self.finished:
             self.next_player_turn()
+            self.end_turn()
         print("GAME OVER")
         print(self.get_winner())
 
-    def restart(self):
-        length = len(self.players)
-        self.game_pile = Piles(length)
-        self.round = 0
-        self.finished = False
-        self.players = []
-        for i in range(length):
-            self.players.append(Player(self.game_pile))
-        self.restart_ai()
-        self.curr_player = 0
 
-    def restart_ai(self):
-        for i in self.ais:
-            i.restart_ai()
 
     def next_player_turn(self):
-        if not self.started:
-            self.started = True
         self.ais[self.curr_player].do_turn()
         self.end_turn()
 
@@ -450,6 +426,7 @@ class Game:
         for i in range(len(self.players)):
             if i is not play_num:
                 self.ais[i].do_militia()
+
 
     def end_turn(self):
         self.players[self.curr_player].end_turn()
