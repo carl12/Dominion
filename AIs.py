@@ -42,6 +42,7 @@ class BM_64_Basic(Ai):
 
     def restart_ai(self):
         self.prov = 0
+        self.player = self.game.players[self.player_num]
 
     def do_turn(self):
         prov_rem = self.game.game_pile.card_remaining[15]
@@ -195,6 +196,8 @@ class BMSmithy(Ai):
 
 class Person(Ai):
     wins = 0
+    def restart_ai(self):
+        self.player = self.game.players[self.player_num]
 
     def do_turn(self):
         print("________________________________")
