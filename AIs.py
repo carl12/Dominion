@@ -1,4 +1,5 @@
 import sys
+
 class Ai:
     player_num = -1
     player = None
@@ -24,25 +25,25 @@ class Ai:
         self.player.cards.discard_card_n(1)
         self.player.cards.discard_card_n(0)
 
-    def restart_ai(self):
-        print("restarting ai from ai")
-
 
 class BM_64_Basic(Ai):
     wins = [0]
-
-    name = "BM_Basic"
-
+    prov = 0
+    name = "coin"
+    duchy = 6
+    estate = 4
 
     def __init__(self, player_num, game, duchy=6, estate=4, prints=False):
         super(BM_64_Basic, self).__init__(player_num, game, prints=False)
         self.duchy = duchy
         self.estate = estate
+
         self.prov = 0
 
     def restart_ai(self):
         self.prov = 0
         self.player = self.game.players[self.player_num]
+
 
     def do_turn(self):
         prov_rem = self.game.game_pile.card_remaining[15]
@@ -132,6 +133,7 @@ class BMSmithy(Ai):
     name = "smithy"
     prints = True
 
+
     def restart_ai(self):
         self.player = self.game.players[self.player_num]
         self.curr_smithy = 0
@@ -143,11 +145,9 @@ class BMSmithy(Ai):
             self.player.play(loc)
         self.player.add_treasure()
         money = self.player.money
-
-        print(self.player.money, "is moneys")
-        print(self.player.cards.deck)
         if money >= 8:
             self.player.buy(self.player, 15)
+
             self.prov += 1
             self.vp_cards[2] += 1
         elif money >= 6:
@@ -233,7 +233,6 @@ class Person(Ai):
         while self.player.buys > 0:
             print("________________________________")
             print("What do you want to buy? You have", self.player.buys, "buys and ", self.player.money, "money")
-
             b = int(sys.stdin.readline())
             if b == -1:
                 break
