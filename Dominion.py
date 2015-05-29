@@ -257,14 +257,6 @@ class Collection:
 
 
 class Player:
-    cards = None
-    money = 0
-    buys = 1
-    actions = 1
-    game_pile = None
-    prints = False
-    vp = 0
-
     def __init__(self, pileIn, prints = False):
         self.actions = 1
         self.buys = 1
@@ -277,9 +269,10 @@ class Player:
     def end_turn(self):
         self.cards.discard_hand()
         self.cards.draw5()
-        print(self.money,"asdf")
+
         self.money = 0
-        print("asdf")
+        print("Turn finished")
+        print()
 
         self.buys = 1
         self.actions = 1
@@ -296,7 +289,6 @@ class Player:
                 self.money += self.cards.hand[i].money
 
     def play(self, loc):
-        #print("asdfasdfasdf")
         my_card = self.cards.hand[loc]
         if self.actions == 0:
             print("Cant play b/c actions = 0")
@@ -330,7 +322,7 @@ class Player:
                 self.money -= card.cost
                 self.cards.discards.append(card)
                 self.vp += card.vp
-                print(card)
+
             else:
                 print(game.game_pile.is_remaining(n))
                 raise "Cards out"
@@ -378,7 +370,6 @@ class Piles:
         self.exhausted_piles = 0
 
     def is_remaining(self, n):
-        print("remaining: " ,self.card_remaining)
         if self.card_remaining[n] > 0:
             self.card_remaining[n] -= 1
             if self.card_remaining == 0:

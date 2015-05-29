@@ -132,11 +132,11 @@ class BMSmithy(Ai):
     prints = True
 
     def restart_ai(self):
+        self.player = self.game.players[self.player_num]
         self.curr_smithy = 0
         self.prov = 0
 
     def do_turn(self):
-
         loc = self.has_smithy()
         if loc >= 0:
             self.player.play(loc)
