@@ -209,8 +209,7 @@ class Person(Ai):
             print("Your hand: ", hand)
             if has_action(hand):
                 print("Which card would you like to play? You have", self.player.actions, "actions \n"
-                                                                                          " (0 to", len(hand) - 1,
-                      ") enter -1 to count treasure and buy")
+                    " (0 to", len(hand) - 1, ") enter -1 to count treasure and buy")
             else:
                 print("You have no actions cards available, jumping to buy phase")
                 break
@@ -223,7 +222,8 @@ class Person(Ai):
                 elif hand[play].is_vp:
                     print("That's a vp card")
                 elif hand[play].special:
-                    print("that card is too complicated try again")
+                    print(hand[play].instruction)
+
                 else:
                     print("playing...", hand[play])
                     print(self.player.actions)

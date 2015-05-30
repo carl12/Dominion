@@ -25,8 +25,11 @@ class Card:
 
 class Special_Card(Card):
     special = True
-    def do_card(self, game, player, arg1, arg2):
+    description = 'Description from special_card, should be overiden'
+    def do_card(self, game, player, info):
         print("abstract method - do_card")
+    def user_prompt(self, player):
+        print(self.description)
 
 
 class Coin(Card):
@@ -46,11 +49,19 @@ class Moat(Card):
 
 class Chapel(Special_Card):
     cost = 2
+    description = 'Choose up to 4 cards in your hand to be trashed'
+    def user_prompt(self, player):
+        print(self.description)
+        n = 4
+        print("Your hand: ", player.cards.hand)
+        while n > 0:
+            print("You can trash ",n ,"more cards. Enter card number from 0 to"
+                  ,len(player.cards.hand)-1), " or -1 to stop"
 
-    def do_card(self, game, player, arg1, arg2 = -1):
+    def do_card(self, game, player,info):
         print("Chapel needs trash")
-        for i in reversed(range(len(arg1))):
-           player.cards.discard_card_n(arg1[i])
+        for i in reversed(range(len(info))):
+           player.cards.discard_card_n(info[i])
 
 
 
@@ -61,9 +72,9 @@ class Cellar(Special_Card):
     cost = 2
     special = True
     name = "Cellar"
-    def do_card(self, game, player, arg1, arg2):
-        for i in reversed(range(len(arg1))):
-            player.cards.discard_card_n(arg1[i])
+    def do_card(self, game, player,info):
+        for i in reversed(range(len(info))):
+            player.cards.discard_card_n(info[i])
 
 
 class Village(Card):
@@ -83,10 +94,10 @@ class Woodcutter(Card):
 class Workshop(Special_Card):
     cost = 4
 
-    def do_card(self, game, player, arg1, arg2):
-        card = game.game_pile.card_piles[arg1]
+    def do_card(self, game, player, info):
+        card = game.game_pile.card_piles[info]
         if card.cost <= 3:
-            player.get(game,arg1)
+            player.get(game,info)
 
     name = "Workshop"
 
@@ -99,12 +110,10 @@ class Militia(Special_Card):
     def attack(self):
         print("milita attack")
 
-    def do_card(self, game, player, arg1, arg2):
+    def do_card(self, game, player, info):
         for i in range(len(game.players)):
             if game.players[i] is not player:
-                print("ugh how do we do this")
-
-
+                player.do_militia()
 
 
 class Smithy(Card):
@@ -125,28 +134,27 @@ class Market(Card):
 class Mine(Special_Card):
     cost = 5
 
-    def do_card(self, game, player, arg1, arg2):
-        card = player.cards.hand[arg1]
+    def do_card(self, game, player, info):
+        card = player.cards.hand[info[0]]
         if card.is_coin:
             val = card.cost
-            card2 = game.game_pile.all_piles[arg2]
+            card2 = game.game_pile.all_piles[info[1]]
             if card2.cost <= val + 3:
-                player.cards.trash_card_n(game.game_pile,arg1)
+                player.cards.trash_card_n(game.game_pile,info[1])
                 player.cards.hand.append(card2)
-                game.game_pile.card_remaining[arg2] -= 1
-
+                game.game_pile.card_remaining[info[1]] -= 1
     name = "Mine"
 
 
 class Remodel(Special_Card):
     cost = 4
 
-    def do_card(self, game, player, arg1, arg2):
-        card1 = player.cards.hand[arg1]
-        card2 = game.game_pile.card_piles[arg2]
+    def do_card(self, game, player, info):
+        card1 = player.cards.hand[info[0]]
+        card2 = game.game_pile.card_piles[info[1]]
         if card1.cost + 2 >= card2.cost:
-            player.cards.hand.trash_card_n(arg1)
-            player.get(game,arg2)
+            player.cards.hand.trash_card_n(info[0])
+            player.get(game,info[1])
 
     name = "Remodel"
 
@@ -257,7 +265,8 @@ class Collection:
 
 
 class Player:
-    def __init__(self, pileIn, prints = False):
+    def __init__(self, game, pileIn, prints = False):
+        self.game = game
         self.actions = 1
         self.buys = 1
         self.money = 0
@@ -293,8 +302,6 @@ class Player:
         if self.actions == 0:
             print("Cant play b/c actions = 0")
             return
-        elif my_card.special:
-            print("doing special card")
         #print("playing card...")
         self.money += my_card.money
         self.buys += my_card.buy
@@ -304,8 +311,12 @@ class Player:
         self.cards.discard_card_n(loc)
         self.actions -= 1
 
-    def play_sp(self, loc, input1 = -1, input2 = -1):
-        card = self.cards.hand[loc]
+    def play_sp(self, info):
+        card = self.cards.hand[info]
+        if card.special:
+            card.do_card(self.game, self, info)
+        else:
+            raise 'Not special card'
 
     def get(self,game,n):
         card = game.game_pile.all_piles[n]
@@ -389,7 +400,7 @@ class Game:
         self.round = 0
         self.finished = False
         for i in range(players):
-            self.players.append(Player(self.game_pile,prints))
+            self.players.append(Player(self,self.game_pile,prints))
         self.init_ai(ai_type)
         self.curr_player = 0
 
