@@ -1,6 +1,7 @@
 __author__ = 'Carl-Admin'
 import random
 import AIs
+import sys
 
 class Card:
     cost = 0
@@ -53,15 +54,24 @@ class Chapel(Special_Card):
     def user_prompt(self, player):
         print(self.description)
         n = 4
+        values = []
         print("Your hand: ", player.cards.hand)
         while n > 0:
             print("You can trash ",n ,"more cards. Enter card number from 0 to"
                   ,len(player.cards.hand)-1), " or -1 to stop"
+            play = sys.stdin.readline()
+            if play.isalnum():
+                if int(play) == -1:
+                    break
+                values.append(play)
+            else:
+                print("Please enter a number ")
+        return tuple(values)
 
     def do_card(self, game, player,info):
         print("Chapel needs trash")
         for i in reversed(range(len(info))):
-           player.cards.discard_card_n(info[i])
+           player.cards.trash(info[i])
 
 
 
@@ -73,8 +83,10 @@ class Cellar(Special_Card):
     special = True
     name = "Cellar"
     def do_card(self, game, player,info):
-        for i in reversed(range(len(info))):
-            player.cards.discard_card_n(info[i])
+        temp = info
+        temp = sorted(temp, reversed=True)
+        for i in temp:
+            player.cards.discard(temp[i])
 
 
 class Village(Card):
@@ -107,8 +119,7 @@ class Militia(Special_Card):
     attack = True
     money = 2
     name = "Militia"
-    def attack(self):
-        print("milita attack")
+
 
     def do_card(self, game, player, info):
         for i in range(len(game.players)):
@@ -140,7 +151,7 @@ class Mine(Special_Card):
             val = card.cost
             card2 = game.game_pile.all_piles[info[1]]
             if card2.cost <= val + 3:
-                player.cards.trash_card_n(game.game_pile,info[1])
+                player.cards.trash(game.game_pile,info[1])
                 player.cards.hand.append(card2)
                 game.game_pile.card_remaining[info[1]] -= 1
     name = "Mine"
@@ -153,7 +164,7 @@ class Remodel(Special_Card):
         card1 = player.cards.hand[info[0]]
         card2 = game.game_pile.card_piles[info[1]]
         if card1.cost + 2 >= card2.cost:
-            player.cards.hand.trash_card_n(info[0])
+            player.cards.hand.trash(info[0])
             player.get(game,info[1])
 
     name = "Remodel"
@@ -235,11 +246,11 @@ class Collection:
             self.hand.append(self.deck[0])
             self.deck.pop(0)
 
-    def discard_card_n(self, n):
+    def discard(self, n):
         self.discards.append(self.hand[n])
         self.hand.pop(n)
 
-    def trash_card_n(self,pile,n):
+    def trash(self,pile,n):
         pile.trash.append(self.hand[n])
         self.hand.pop(n)
 
@@ -308,7 +319,7 @@ class Player:
         self.actions += my_card.actions
         if my_card.draw > 0:
             self.cards.drawN(my_card.draw)
-        self.cards.discard_card_n(loc)
+        self.cards.discard(loc)
         self.actions -= 1
 
     def play_sp(self, info):

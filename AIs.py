@@ -22,8 +22,8 @@ class Ai:
 
     def do_militia(self):
         print('Doing discarding from ai')
-        self.player.cards.discard_card_n(1)
-        self.player.cards.discard_card_n(0)
+        self.player.cards.discard(1)
+        self.player.cards.discard(0)
 
 
 class BM_64_Basic(Ai):
@@ -107,17 +107,17 @@ class BM_64_Basic(Ai):
                 if len(self.player.cards.hand) == 3:
                     return
                 if self.player.cards.hand[i].is_vp:
-                    self.player.cards.discard_card_n(i)
+                    self.player.cards.discard(i)
             for i in reversed(range(self.player.cards.hand)):
                 if len(self.player.cards.hand) == 3:
                     return
                 if self.player.cards.hand[i].name == "Copper":
-                    self.player.cards.discard_card_n(i)
+                    self.player.cards.discard(i)
             for i in reversed(range(self.player.cards.hand)):
                 if len(self.player.cards.hand) == 3:
                     return
                 if self.player.cards.hand[i].name == "Silver":
-                    self.player.cards.discard_card_n(i)
+                    self.player.cards.discard(i)
             print("Couldnt find anything to discard")
             print(self.player.cards.hand)
             print()
@@ -170,22 +170,22 @@ class BMSmithy(Ai):
             if len(self.player.cards.hand) == 3:
                 return
             if self.player.cards.hand[i].is_vp:
-                self.player.cards.discard_card_n(i)
+                self.player.cards.discard(i)
         for i in reversed(range(self.player.cards.hand)):
             if len(self.player.cards.hand) == 3:
                 return
             if self.player.cards.hand[i].name == "Copper":
-                self.player.cards.discard_card_n(i)
+                self.player.cards.discard(i)
         for i in reversed(range(self.player.cards.hand)):
             if len(self.player.cards.hand) == 3:
                 return
             if self.player.cards.hand[i].name == "Smithy":
-                self.player.cards.discard_card_n(i)
+                self.player.cards.discard(i)
         for i in reversed(range(self.player.cards.hand)):
             if len(self.player.cards.hand) == 3:
                 return
             if self.player.cards.hand[i].name == "Silver":
-                self.player.cards.discard_card_n(i)
+                self.player.cards.discard(i)
 
         print("Couldnt find anything to discard")
         print(self.player.cards.hand)
@@ -266,7 +266,7 @@ class Person(Ai):
             print(hand)
             discard = int(sys.stdin.readline())
             print("Discarding ", hand[discard])
-            self.player.cards.discard_card_n(discard)
+            self.player.cards.discard(discard)
 
 
 def has_action(hand):
