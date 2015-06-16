@@ -2,195 +2,97 @@ __author__ = 'Carl-Admin'
 import random
 import AIs
 
-class Card:
-    cost = 0
-    draw = 0
-    money = 0
-    actions = 0
-    buy = 0
-    vp = 0
-    name = "deffault name"
-    reaction = False
-    attack = False
-    special = False
-    is_coin = False
-    is_vp = False
 
-    def __str__(self):
-        return self.name
+class Game:
+    players = []
+    ais = []
 
-    def __repr__(self):
-        return self.__str__()
+    def __init__(self, players,ai_type, prints):
+        self.game_pile = Piles(players)
+        self.players = []
+        self.round = 0
+        self.finished = False
+        for i in range(players):
+            self.players.append(Player(self.game_pile,prints))
+        self.init_ai(ai_type)
+        self.curr_player = 0
 
+    def init_ai(self, ai_type):
+        self.ais = []
+        j = 0
+        for i in ai_type:
+            if i == 0:
+                self.ais.append(AIs.Person(j,self))
+            elif i == 1:
+                self.ais.append(AIs.BM_64_Basic(j,self))
+            elif i == 2:
+                self.ais.append(AIs.BMSmithy(j,self))
+            else:
+                raise "Invalid ai"
+            j += 1
 
-class Special_Card(Card):
-    special = True
-    def do_card(self, game, player, arg1, arg2):
-        print("abstract method - do_card")
-
-
-class Coin(Card):
-    is_coin = True
-
-
-class Vp(Card):
-    is_vp = True
-
-
-class Moat(Card):
-    cost = 2
-    reaction = True
-    draw = 2
-    name = "Moat"
-
-
-class Chapel(Special_Card):
-    cost = 2
-
-    def do_card(self, game, player, arg1, arg2 = -1):
-        print("Chapel needs trash")
-        for i in reversed(range(len(arg1))):
-           player.cards.discard_card_n(arg1[i])
+    def play_game(self):
+        while  not self.finished:
+            self.next_player_turn()
+            self.end_turn()
+        print("GAME OVER")
+        print(self.get_winner())
 
 
 
-    name = "Chapel"
+    def next_player_turn(self):
+        self.ais[self.curr_player].do_turn()
+        self.end_turn()
+
+    def do_militia(self, play_num):
+        for i in range(len(self.players)):
+            if i is not play_num:
+                self.ais[i].do_militia()
 
 
-class Cellar(Special_Card):
-    cost = 2
-    special = True
-    name = "Cellar"
-    def do_card(self, game, player, arg1, arg2):
-        for i in reversed(range(len(arg1))):
-            player.cards.discard_card_n(arg1[i])
+    def end_turn(self):
+        self.players[self.curr_player].end_turn()
+        if self.check_game_over():
+            return
+        if self.curr_player < len(self.players) - 1:
+            self.curr_player += 1
+        else:
+            self.curr_player = 0
+            self.round += 1
 
+    def check_game_over(self):
+        if self.game_pile.exhausted_piles >= 3:
+            print("Ran out of 3 piles")
+            self.finished = True
+        elif self.game_pile.card_remaining[15] == 0:
+            print("Out of Provinces")
+            self.finished = True
+        elif self.round >= 100:
+            print("game went to 100 rounds")
+            self.finished = True
+        return self.finished
 
-class Village(Card):
-    cost = 3
-    draw = 1
-    actions = 2
-    name = "Village"
+    def get_points(self):
+        arr = []
+        for i in range(len(self.players)):
+            arr.append(self.players[i].get_points())
 
+        return arr
 
-class Woodcutter(Card):
-    cost = 3
-    buy = 1
-    money = 2
-    name = "Woodcutter"
+    def get_winner(self):
+        if self.finished:
+            max = -1
+            loc = -1
+            a = self.get_points()
+            for i in range(len(a)):
+                if a[i] > max:
+                    max = a[i]
+                    loc = i
+                elif a[i] == max:
+                    loc = -1
 
-
-class Workshop(Special_Card):
-    cost = 4
-
-    def do_card(self, game, player, arg1, arg2):
-        card = game.game_pile.card_piles[arg1]
-        if card.cost <= 3:
-            player.get(game,arg1)
-
-    name = "Workshop"
-
-
-class Militia(Special_Card):
-    cost = 4
-    attack = True
-    money = 2
-    name = "Militia"
-    def attack(self):
-        print("milita attack")
-
-    def do_card(self, game, player, arg1, arg2):
-        for i in range(len(game.players)):
-            if game.players[i] is not player:
-                print("ugh how do we do this")
-
-
-
-
-class Smithy(Card):
-    cost = 4
-    draw = 3
-    name = "Smithy"
-
-
-class Market(Card):
-    cost = 5
-    draw = 1
-    actions = 1
-    gold = 1
-    buy = 1
-    name = "Market"
-
-
-class Mine(Special_Card):
-    cost = 5
-
-    def do_card(self, game, player, arg1, arg2):
-        card = player.cards.hand[arg1]
-        if card.is_coin:
-            val = card.cost
-            card2 = game.game_pile.all_piles[arg2]
-            if card2.cost <= val + 3:
-                player.cards.trash_card_n(game.game_pile,arg1)
-                player.cards.hand.append(card2)
-                game.game_pile.card_remaining[arg2] -= 1
-
-    name = "Mine"
-
-
-class Remodel(Special_Card):
-    cost = 4
-
-    def do_card(self, game, player, arg1, arg2):
-        card1 = player.cards.hand[arg1]
-        card2 = game.game_pile.card_piles[arg2]
-        if card1.cost + 2 >= card2.cost:
-            player.cards.hand.trash_card_n(arg1)
-            player.get(game,arg2)
-
-    name = "Remodel"
-
-
-class Copper(Coin):
-    cost = 0
-    money = 1
-    name = "Copper"
-
-
-class Silver(Coin):
-    cost = 3
-    money = 2
-    name = "Silver"
-
-
-class Gold(Coin):
-    cost = 6
-    money = 3
-    name = "Gold"
-
-
-class Estate(Vp):
-    cost = 2
-    vp = 1
-    name = "Estate"
-
-
-class Duchy(Vp):
-    cost = 5
-    vp = 3
-    name = "Duchy"
-
-
-class Province(Vp):
-    cost = 8
-    vp = 6
-    name = "Province"
-
-
-class Curse(Vp):
-    cost = 0
-    vp = -1
-    name = "Curse"
+            return loc
+        return -2
 
 
 class Collection:
@@ -375,100 +277,191 @@ class Piles:
         return False
 
 
-class Game:
-    players = []
-    ais = []
+class Card:
+    cost = 0
+    draw = 0
+    money = 0
+    actions = 0
+    buy = 0
+    vp = 0
+    name = "deffault name"
+    reaction = False
+    attack = False
+    special = False
+    is_coin = False
+    is_vp = False
+
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return self.__str__()
+
+
+class Special_Card(Card):
+    special = True
+    def do_card(self, game, player, arg1, arg2):
+        print("abstract method - do_card")
+
+
+class Coin(Card):
+    is_coin = True
+
+
+class Vp(Card):
+    is_vp = True
+
+
+class Moat(Card):
+    cost = 2
+    reaction = True
+    draw = 2
+    name = "Moat"
+
+
+class Chapel(Special_Card):
+    cost = 2
+
+    def do_card(self, game, player, arg1, arg2 = -1):
+        print("Chapel needs trash")
+        for i in reversed(range(len(arg1))):
+           player.cards.discard_card_n(arg1[i])
 
 
 
+    name = "Chapel"
 
 
-    def __init__(self, players,ai_type, prints):
-        self.game_pile = Piles(players)
-        self.players = []
-        self.round = 0
-        self.finished = False
-        for i in range(players):
-            self.players.append(Player(self.game_pile,prints))
-        self.init_ai(ai_type)
-        self.curr_player = 0
-
-    def init_ai(self, ai_type):
-        self.ais = []
-        j = 0
-        for i in ai_type:
-            if i == 0:
-                self.ais.append(AIs.Person(j,self))
-            elif i == 1:
-                self.ais.append(AIs.BM_64_Basic(j,self))
-            elif i == 2:
-                self.ais.append(AIs.BMSmithy(j,self))
-            else:
-                raise "Invalid ai"
-            j += 1
-
-    def play_game(self):
-        while  not self.finished:
-            self.next_player_turn()
-            self.end_turn()
-        print("GAME OVER")
-        print(self.get_winner())
+class Cellar(Special_Card):
+    cost = 2
+    special = True
+    name = "Cellar"
+    def do_card(self, game, player, arg1, arg2):
+        for i in reversed(range(len(arg1))):
+            player.cards.discard_card_n(arg1[i])
 
 
-
-    def next_player_turn(self):
-        self.ais[self.curr_player].do_turn()
-        self.end_turn()
-
-    def do_militia(self, play_num):
-        for i in range(len(self.players)):
-            if i is not play_num:
-                self.ais[i].do_militia()
+class Village(Card):
+    cost = 3
+    draw = 1
+    actions = 2
+    name = "Village"
 
 
-    def end_turn(self):
-        self.players[self.curr_player].end_turn()
-        if self.check_game_over():
-            return
-        if self.curr_player < len(self.players) - 1:
-            self.curr_player += 1
-        else:
-            self.curr_player = 0
-            self.round += 1
-
-    def check_game_over(self):
-        if self.game_pile.exhausted_piles >= 3:
-            print("Ran out of 3 piles")
-            self.finished = True
-        elif self.game_pile.card_remaining[15] == 0:
-            print("Out of Provinces")
-            self.finished = True
-        elif self.round >= 100:
-            print("game went to 100 rounds")
-            self.finished = True
-        return self.finished
-
-    def get_points(self):
-        arr = []
-        for i in range(len(self.players)):
-            arr.append(self.players[i].get_points())
-
-        return arr
-
-    def get_winner(self):
-        if self.finished:
-            max = -1
-            loc = -1
-            a = self.get_points()
-            for i in range(len(a)):
-                if a[i] > max:
-                    max = a[i]
-                    loc = i
-                elif a[i] == max:
-                    loc = -1
-
-            return loc
-        return -2
+class Woodcutter(Card):
+    cost = 3
+    buy = 1
+    money = 2
+    name = "Woodcutter"
 
 
+class Workshop(Special_Card):
+    cost = 4
+
+    def do_card(self, game, player, arg1, arg2):
+        card = game.game_pile.card_piles[arg1]
+        if card.cost <= 3:
+            player.get(game,arg1)
+
+    name = "Workshop"
+
+
+class Militia(Special_Card):
+    cost = 4
+    attack = True
+    money = 2
+    name = "Militia"
+    def attack(self):
+        print("milita attack")
+
+    def do_card(self, game, player, arg1, arg2):
+        for i in range(len(game.players)):
+            if game.players[i] is not player:
+                print("ugh how do we do this")
+
+
+class Smithy(Card):
+    cost = 4
+    draw = 3
+    name = "Smithy"
+
+
+class Market(Card):
+    cost = 5
+    draw = 1
+    actions = 1
+    gold = 1
+    buy = 1
+    name = "Market"
+
+
+class Mine(Special_Card):
+    cost = 5
+
+    def do_card(self, game, player, arg1, arg2):
+        card = player.cards.hand[arg1]
+        if card.is_coin:
+            val = card.cost
+            card2 = game.game_pile.all_piles[arg2]
+            if card2.cost <= val + 3:
+                player.cards.trash_card_n(game.game_pile,arg1)
+                player.cards.hand.append(card2)
+                game.game_pile.card_remaining[arg2] -= 1
+
+    name = "Mine"
+
+
+class Remodel(Special_Card):
+    cost = 4
+
+    def do_card(self, game, player, arg1, arg2):
+        card1 = player.cards.hand[arg1]
+        card2 = game.game_pile.card_piles[arg2]
+        if card1.cost + 2 >= card2.cost:
+            player.cards.hand.trash_card_n(arg1)
+            player.get(game,arg2)
+
+    name = "Remodel"
+
+
+class Copper(Coin):
+    cost = 0
+    money = 1
+    name = "Copper"
+
+
+class Silver(Coin):
+    cost = 3
+    money = 2
+    name = "Silver"
+
+
+class Gold(Coin):
+    cost = 6
+    money = 3
+    name = "Gold"
+
+
+class Estate(Vp):
+    cost = 2
+    vp = 1
+    name = "Estate"
+
+
+class Duchy(Vp):
+    cost = 5
+    vp = 3
+    name = "Duchy"
+
+
+class Province(Vp):
+    cost = 8
+    vp = 6
+    name = "Province"
+
+
+class Curse(Vp):
+    cost = 0
+    vp = -1
+    name = "Curse"
 
