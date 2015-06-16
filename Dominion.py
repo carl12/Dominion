@@ -3,6 +3,307 @@ import random
 import AIs
 import sys
 
+class Game:
+    players = []
+    ais = []
+
+
+
+
+
+    def __init__(self, players,ai_type, prints):
+        self.game_pile = Piles(players)
+        self.players = []
+        self.round = 0
+        self.finished = False
+        for i in range(players):
+            self.players.append(Player(self,self.game_pile,prints))
+        self.init_ai(ai_type)
+        self.curr_player = 0
+        self.started = True
+
+    def init_ai(self, ai_type):
+        self.ais = []
+        j = 0
+        for i in ai_type:
+            if i == 0:
+                self.ais.append(AIs.Person(j,self))
+            elif i == 1:
+                self.ais.append(AIs.BM_64_Basic(j,self))
+            elif i == 2:
+                self.ais.append(AIs.BMSmithy(j,self))
+            else:
+                raise "Invalid ai"
+            j += 1
+
+
+    def play_game(self):
+        if self.started:
+            self.restart()
+        while  not self.finished:
+            self.next_player_turn()
+        print("GAME OVER")
+        print(self.get_winner())
+
+    def restart(self):
+        self.started = False
+        length = len(self.players)
+        self.game_pile = Piles(length)
+        self.round = 0
+        self.finished = False
+        self.players = []
+        for i in range(length):
+            self.players.append(Player(self, self.game_pile))
+        self.restart_ai()
+        self.curr_player = 0
+
+    def restart_ai(self):
+        for i in self.ais:
+            i.restart_ai()
+
+    def next_player_turn(self):
+        if not self.started:
+            self.started = True
+        self.ais[self.curr_player].do_turn()
+        self.end_turn()
+
+
+    def do_militia(self, play_num):
+        for i in range(len(self.players)):
+            if i is not play_num:
+                self.ais[i].do_militia()
+
+
+    def end_turn(self):
+        self.players[self.curr_player].end_turn()
+        if self.check_game_over():
+            return
+        if self.curr_player < len(self.players) - 1:
+            self.curr_player += 1
+        else:
+            self.curr_player = 0
+            self.round += 1
+
+    def check_game_over(self):
+        if self.game_pile.exhausted_piles >= 3:
+            print("Ran out of 3 piles")
+            self.finished = True
+        elif self.game_pile.card_remaining[15] == 0:
+            print("Out of Provinces")
+            self.finished = True
+        elif self.round >= 100:
+            print("game went to 100 rounds")
+            self.finished = True
+        return self.finished
+
+    def get_points(self):
+        arr = []
+        for i in range(len(self.players)):
+            arr.append(self.players[i].get_points())
+
+        return arr
+
+    def get_winner(self):
+        if self.finished:
+            max = -1
+            loc = -1
+            a = self.get_points()
+            for i in range(len(a)):
+                if a[i] > max:
+                    max = a[i]
+                    loc = i
+                elif a[i] == max:
+                    loc = -1
+
+            return loc
+        return -2
+
+
+class Collection:
+    deck = []
+    discards = []
+    hand = []
+    prints = False
+
+    def __init__(self,prints):
+        self.prints = prints
+        self.deck = [Copper(), Copper(), Copper(), Copper(), Copper(),
+                     Copper(), Copper(), Estate(), Estate(), Estate()]
+        self.hand = []
+        self.discards = []
+        random.shuffle(self.deck)
+        self.draw5()
+
+    def shuffle_discard(self):
+        self.deck.extend(self.discards)
+        self.discards = []
+        random.shuffle(self.deck)
+
+    def draw5(self):
+        for i in range(5):
+            if len(self.deck) == 0:
+                self.shuffle_discard()
+            self.hand.append(self.deck[0])
+            self.deck.pop(0)
+
+    def drawN(self, n):
+        for i in range(n):
+            if len(self.deck) == 0:
+                self.shuffle_discard()
+            self.hand.append(self.deck[0])
+            self.deck.pop(0)
+
+    def discard(self, n):
+        self.discards.append(self.hand[n])
+        self.hand.pop(n)
+
+    def trash(self,pile,n):
+        pile.trash.append(self.hand[n])
+        self.hand.pop(n)
+
+    def discard_hand(self):
+        self.discards.extend(self.hand)
+        self.hand = []
+
+    def has_reaction(self):
+        for i in range(len(self.hand)):
+            if self.hand[i].reaction:
+                return True
+        return False
+
+    def get_points(self):
+        a = 0
+        for i in range(len(self.hand)):
+            a += self.hand[i].vp
+        for i in range(len(self.discards)):
+            a += self.discards[i].vp
+        for i in range(len(self.deck)):
+            a += self.deck[i].vp
+        return a
+
+
+class Player:
+    def __init__(self, game, pileIn, prints = False):
+        self.game = game
+        self.actions = 1
+        self.buys = 1
+        self.money = 0
+        self.prints = prints
+        self.game_pile = pileIn
+        self.cards = Collection(prints)
+        self.vp = 3
+
+    def end_turn(self):
+        self.cards.discard_hand()
+        self.cards.draw5()
+        self.money = 0
+        print("Turn finished")
+        print()
+
+
+        self.buys = 1
+        self.actions = 1
+
+    def draw(self):
+        self.cards.drawN(1)
+
+    def drawN(self,n):
+        self.cards.drawN(n)
+
+    def add_treasure(self):
+        for i in range(len(self.cards.hand)):
+            if self.cards.hand[i].is_coin:
+                self.money += self.cards.hand[i].money
+
+    def play(self, loc):
+        my_card = self.cards.hand[loc]
+        if self.actions == 0:
+            print("Cant play b/c actions = 0")
+            return
+        #print("playing card...")
+        self.money += my_card.money
+        self.buys += my_card.buy
+        self.actions += my_card.actions
+        if my_card.draw > 0:
+            self.cards.drawN(my_card.draw)
+        self.cards.discard(loc)
+        self.actions -= 1
+
+    def play_sp(self, info):
+        card = self.cards.hand[info]
+        if card.special:
+            card.do_card(self.game, self, info)
+        else:
+            raise 'Not special card'
+
+    def get(self,game,n):
+        card = game.game_pile.all_piles[n]
+        if game.game_pile.is_remaining(n):
+            self.cards.discards.append(card)
+            self.vp += card.vp
+
+    def buy(self, game, n):
+        card = game.game_pile.card_piles[n]
+        if self.money >= card.cost and self.buys > 0:
+            if game.game_pile.is_remaining(n):
+                self.buys -= 1
+                self.money -= card.cost
+                self.cards.discards.append(card)
+                self.vp += card.vp
+            else:
+                print(game.game_pile.is_remaining(n))
+                raise "Cards out"
+
+    def get_points(self):
+        return self.cards.get_points()
+
+
+class Piles:
+    card_piles = []
+    card_remaining = []
+    card_loc = []
+    building_loc = {}
+
+    exhausted_piles = 0
+    trash = []
+    default_buildings = [Cellar(), Moat(), Village(), Woodcutter(), Workshop(), Militia(), Remodel(), Smithy(), Market(),
+                     Mine()]
+    default_loc = {"Cellar": 0, "Moat": 1, "Village": 2, "Woodcutter": 3, "Workshop": 4, "Militia": 5, "Remodel": 6,
+                   "Smithy": 7, "Market": 8, "Mine": 9,
+                   "Copper":10,"Silver":11,"Gold":12,
+                   "Estate":13,"Duchy":14,"Province":15,"Curse":16}
+
+    def __init__(self, player_num, buildings = default_buildings,):
+
+        self.card_remaining = []
+        self.card_piles = buildings.copy()
+        for x in range(len(buildings)):
+            self.building_loc[buildings[x].name] = x
+            self.card_remaining.append(10)
+
+        self.card_piles.extend([Copper(), Silver(), Gold()])
+        self.card_remaining.extend([100,100,100])
+
+        self.card_piles.extend([Estate(), Duchy(), Province(),Curse()])
+        self.vp_num = player_num * 4
+
+        self.card_remaining.append(self.vp_num)
+        self.card_remaining.append(self.vp_num)
+        self.card_remaining.append(self.vp_num)
+
+        self.card_remaining.append(player_num * 5)
+
+        self.exhausted_piles = 0
+
+    def is_remaining(self, n):
+        if self.card_remaining[n] > 0:
+            self.card_remaining[n] -= 1
+            if self.card_remaining == 0:
+                self.exhausted_piles += 1
+            return True
+        return False
+
+
 class Card:
     cost = 0
     draw = 0
@@ -210,287 +511,5 @@ class Curse(Vp):
     cost = 0
     vp = -1
     name = "Curse"
-
-
-class Collection:
-    deck = []
-    discards = []
-    hand = []
-    prints = False
-
-    def __init__(self,prints):
-        self.prints = prints
-        self.deck = [Copper(), Copper(), Copper(), Copper(), Copper(),
-                     Copper(), Copper(), Estate(), Estate(), Estate()]
-        self.hand = []
-        self.discards = []
-        random.shuffle(self.deck)
-        self.draw5()
-
-    def shuffle_discard(self):
-        self.deck.extend(self.discards)
-        self.discards = []
-        random.shuffle(self.deck)
-
-    def draw5(self):
-        for i in range(5):
-            if len(self.deck) == 0:
-                self.shuffle_discard()
-            self.hand.append(self.deck[0])
-            self.deck.pop(0)
-
-    def drawN(self, n):
-        for i in range(n):
-            if len(self.deck) == 0:
-                self.shuffle_discard()
-            self.hand.append(self.deck[0])
-            self.deck.pop(0)
-
-    def discard(self, n):
-        self.discards.append(self.hand[n])
-        self.hand.pop(n)
-
-    def trash(self,pile,n):
-        pile.trash.append(self.hand[n])
-        self.hand.pop(n)
-
-    def discard_hand(self):
-        self.discards.extend(self.hand)
-        self.hand = []
-
-    def has_reaction(self):
-        for i in range(len(self.hand)):
-            if self.hand[i].reaction:
-                return True
-        return False
-
-    def get_points(self):
-        a = 0
-        for i in range(len(self.hand)):
-            a += self.hand[i].vp
-        for i in range(len(self.discards)):
-            a += self.discards[i].vp
-        for i in range(len(self.deck)):
-            a += self.deck[i].vp
-        return a
-
-
-class Player:
-    def __init__(self, game, pileIn, prints = False):
-        self.game = game
-        self.actions = 1
-        self.buys = 1
-        self.money = 0
-        self.prints = prints
-        self.game_pile = pileIn
-        self.cards = Collection(prints)
-        self.vp = 3
-
-    def end_turn(self):
-        self.cards.discard_hand()
-        self.cards.draw5()
-        self.money = 0
-        print("Turn finished")
-        print()
-
-
-        self.buys = 1
-        self.actions = 1
-
-    def draw(self):
-        self.cards.drawN(1)
-
-    def drawN(self,n):
-        self.cards.drawN(n)
-
-    def add_treasure(self):
-        for i in range(len(self.cards.hand)):
-            if self.cards.hand[i].is_coin:
-                self.money += self.cards.hand[i].money
-
-    def play(self, loc):
-        my_card = self.cards.hand[loc]
-        if self.actions == 0:
-            print("Cant play b/c actions = 0")
-            return
-        #print("playing card...")
-        self.money += my_card.money
-        self.buys += my_card.buy
-        self.actions += my_card.actions
-        if my_card.draw > 0:
-            self.cards.drawN(my_card.draw)
-        self.cards.discard(loc)
-        self.actions -= 1
-
-    def play_sp(self, info):
-        card = self.cards.hand[info]
-        if card.special:
-            card.do_card(self.game, self, info)
-        else:
-            raise 'Not special card'
-
-    def get(self,game,n):
-        card = game.game_pile.all_piles[n]
-        if game.game_pile.is_remaining(n):
-            self.cards.discards.append(card)
-            self.vp += card.vp
-
-    def buy(self, game, n):
-        card = game.game_pile.card_piles[n]
-        if self.money >= card.cost and self.buys > 0:
-            if game.game_pile.is_remaining(n):
-                self.buys -= 1
-                self.money -= card.cost
-                self.cards.discards.append(card)
-                self.vp += card.vp
-            else:
-                print(game.game_pile.is_remaining(n))
-                raise "Cards out"
-
-    def get_points(self):
-        return self.cards.get_points()
-
-
-class Piles:
-    card_piles = []
-    card_remaining = []
-    card_loc = []
-    building_loc = {}
-
-    exhausted_piles = 0
-    trash = []
-    default_buildings = [Cellar(), Moat(), Village(), Woodcutter(), Workshop(), Militia(), Remodel(), Smithy(), Market(),
-                     Mine()]
-    default_loc = {"Cellar": 0, "Moat": 1, "Village": 2, "Woodcutter": 3, "Workshop": 4, "Militia": 5, "Remodel": 6,
-                   "Smithy": 7, "Market": 8, "Mine": 9,
-                   "Copper":10,"Silver":11,"Gold":12,
-                   "Estate":13,"Duchy":14,"Province":15,"Curse":16}
-
-    def __init__(self, player_num, buildings = default_buildings,):
-
-        self.card_remaining = []
-        self.card_piles = buildings.copy()
-        for x in range(len(buildings)):
-            self.building_loc[buildings[x].name] = x
-            self.card_remaining.append(10)
-
-        self.card_piles.extend([Copper(), Silver(), Gold()])
-        self.card_remaining.extend([100,100,100])
-
-        self.card_piles.extend([Estate(), Duchy(), Province(),Curse()])
-        self.vp_num = player_num * 4
-
-        self.card_remaining.append(self.vp_num)
-        self.card_remaining.append(self.vp_num)
-        self.card_remaining.append(self.vp_num)
-
-        self.card_remaining.append(player_num * 5)
-
-        self.exhausted_piles = 0
-
-    def is_remaining(self, n):
-        if self.card_remaining[n] > 0:
-            self.card_remaining[n] -= 1
-            if self.card_remaining == 0:
-                self.exhausted_piles += 1
-            return True
-        return False
-
-
-class Game:
-    players = []
-    ais = []
-
-
-
-
-
-    def __init__(self, players,ai_type, prints):
-        self.game_pile = Piles(players)
-        self.players = []
-        self.round = 0
-        self.finished = False
-        for i in range(players):
-            self.players.append(Player(self,self.game_pile,prints))
-        self.init_ai(ai_type)
-        self.curr_player = 0
-
-    def init_ai(self, ai_type):
-        self.ais = []
-        j = 0
-        for i in ai_type:
-            if i == 0:
-                self.ais.append(AIs.Person(j,self))
-            elif i == 1:
-                self.ais.append(AIs.BM_64_Basic(j,self))
-            elif i == 2:
-                self.ais.append(AIs.BMSmithy(j,self))
-            else:
-                raise "Invalid ai"
-            j += 1
-
-    def play_game(self):
-        while  not self.finished:
-            self.next_player_turn()
-            self.end_turn()
-        print("GAME OVER")
-        print(self.get_winner())
-
-
-
-    def next_player_turn(self):
-        self.ais[self.curr_player].do_turn()
-        self.end_turn()
-
-    def do_militia(self, play_num):
-        for i in range(len(self.players)):
-            if i is not play_num:
-                self.ais[i].do_militia()
-
-
-    def end_turn(self):
-        self.players[self.curr_player].end_turn()
-        if self.check_game_over():
-            return
-        if self.curr_player < len(self.players) - 1:
-            self.curr_player += 1
-        else:
-            self.curr_player = 0
-            self.round += 1
-
-    def check_game_over(self):
-        if self.game_pile.exhausted_piles >= 3:
-            print("Ran out of 3 piles")
-            self.finished = True
-        elif self.game_pile.card_remaining[15] == 0:
-            print("Out of Provinces")
-            self.finished = True
-        elif self.round >= 100:
-            print("game went to 100 rounds")
-            self.finished = True
-        return self.finished
-
-    def get_points(self):
-        arr = []
-        for i in range(len(self.players)):
-            arr.append(self.players[i].get_points())
-
-        return arr
-
-    def get_winner(self):
-        if self.finished:
-            max = -1
-            loc = -1
-            a = self.get_points()
-            for i in range(len(a)):
-                if a[i] > max:
-                    max = a[i]
-                    loc = i
-                elif a[i] == max:
-                    loc = -1
-
-            return loc
-        return -2
-
 
 
