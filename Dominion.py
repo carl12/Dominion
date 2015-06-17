@@ -3,13 +3,221 @@ import random
 import AIs
 import sys
 
+ai_type = {'Person':0,'BM':1,'BMSmithy':2}
+
+
+class Card:
+    cost = 0
+    draw = 0
+    money = 0
+    actions = 0
+    buy = 0
+    vp = 0
+    name = "deffault name"
+    reaction = False
+    attack = False
+    special = False
+    is_coin = False
+    is_vp = False
+
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return self.__str__()
+
+
+class Special_Card(Card):
+    special = True
+    description = 'Description from special_card, should be overiden'
+    def do_card(self, game, player, info):
+        print("abstract method - do_card")
+    def user_prompt(self, player):
+        print(self.description)
+
+
+class Coin(Card):
+    is_coin = True
+
+
+class Vp(Card):
+    is_vp = True
+
+
+class Moat(Card):
+    cost = 2
+    reaction = True
+    draw = 2
+    name = "Moat"
+
+
+class Chapel(Special_Card):
+    cost = 2
+    description = 'Choose up to 4 cards in your hand to be trashed'
+    def user_prompt(self, player):
+        print(self.description)
+        n = 4
+        values = []
+        print("Your hand: ", player.cards.hand)
+        while n > 0:
+            print("You can trash ",n ,"more cards. Enter card number from 0 to"
+                  ,len(player.cards.hand)-1), " or -1 to stop"
+            play = sys.stdin.readline()
+            if play.isalnum():
+                if int(play) == -1:
+                    break
+                values.append(play)
+            else:
+                print("Please enter a number ")
+        return tuple(values)
+
+    def do_card(self, game, player,info):
+        print("Chapel needs trash")
+        for i in reversed(range(len(info))):
+           player.cards.trash(info[i])
+
+
+
+    name = "Chapel"
+
+
+class Cellar(Special_Card):
+    cost = 2
+    special = True
+    name = "Cellar"
+    def do_card(self, game, player,info):
+        temp = info
+        temp = sorted(temp, reversed=True)
+        for i in temp:
+            player.cards.discard(temp[i])
+
+
+class Village(Card):
+    cost = 3
+    draw = 1
+    actions = 2
+    name = "Village"
+
+
+class Woodcutter(Card):
+    cost = 3
+    buy = 1
+    money = 2
+    name = "Woodcutter"
+
+
+class Workshop(Special_Card):
+    cost = 4
+
+    def do_card(self, game, player, info):
+        card = game.game_pile.card_piles[info]
+        if card.cost <= 3:
+            player.get(game,info)
+
+    name = "Workshop"
+
+
+class Militia(Special_Card):
+    cost = 4
+    attack = True
+    money = 2
+    name = "Militia"
+
+
+    def do_card(self, game, player, info):
+        for i in range(len(game.players)):
+            if game.players[i] is not player:
+                player.do_militia()
+
+
+class Smithy(Card):
+    cost = 4
+    draw = 3
+    name = "Smithy"
+
+
+class Market(Card):
+    cost = 5
+    draw = 1
+    actions = 1
+    gold = 1
+    buy = 1
+    name = "Market"
+
+
+class Mine(Special_Card):
+    cost = 5
+
+    def do_card(self, game, player, info):
+        card = player.cards.hand[info[0]]
+        if card.is_coin:
+            val = card.cost
+            card2 = game.game_pile.all_piles[info[1]]
+            if card2.cost <= val + 3:
+                player.cards.trash(game.game_pile,info[1])
+                player.cards.hand.append(card2)
+                game.game_pile.card_remaining[info[1]] -= 1
+    name = "Mine"
+
+
+class Remodel(Special_Card):
+    cost = 4
+
+    def do_card(self, game, player, info):
+        card1 = player.cards.hand[info[0]]
+        card2 = game.game_pile.card_piles[info[1]]
+        if card1.cost + 2 >= card2.cost:
+            player.cards.hand.trash(info[0])
+            player.get(game,info[1])
+
+    name = "Remodel"
+
+
+class Copper(Coin):
+    cost = 0
+    money = 1
+    name = "Copper"
+
+
+class Silver(Coin):
+    cost = 3
+    money = 2
+    name = "Silver"
+
+
+class Gold(Coin):
+    cost = 6
+    money = 3
+    name = "Gold"
+
+
+class Estate(Vp):
+    cost = 2
+    vp = 1
+    name = "Estate"
+
+
+class Duchy(Vp):
+    cost = 5
+    vp = 3
+    name = "Duchy"
+
+
+class Province(Vp):
+    cost = 8
+    vp = 6
+    name = "Province"
+
+
+class Curse(Vp):
+    cost = 0
+    vp = -1
+    name = "Curse"
+
+
 class Game:
     players = []
     ais = []
-
-
-
-
 
     def __init__(self, players,ai_type, prints):
         self.game_pile = Piles(players)
@@ -67,12 +275,10 @@ class Game:
         self.ais[self.curr_player].do_turn()
         self.end_turn()
 
-
     def do_militia(self, play_num):
         for i in range(len(self.players)):
             if i is not play_num:
                 self.ais[i].do_militia()
-
 
     def end_turn(self):
         self.players[self.curr_player].end_turn()
@@ -302,214 +508,4 @@ class Piles:
                 self.exhausted_piles += 1
             return True
         return False
-
-
-class Card:
-    cost = 0
-    draw = 0
-    money = 0
-    actions = 0
-    buy = 0
-    vp = 0
-    name = "deffault name"
-    reaction = False
-    attack = False
-    special = False
-    is_coin = False
-    is_vp = False
-
-    def __str__(self):
-        return self.name
-
-    def __repr__(self):
-        return self.__str__()
-
-
-class Special_Card(Card):
-    special = True
-    description = 'Description from special_card, should be overiden'
-    def do_card(self, game, player, info):
-        print("abstract method - do_card")
-    def user_prompt(self, player):
-        print(self.description)
-
-
-class Coin(Card):
-    is_coin = True
-
-
-class Vp(Card):
-    is_vp = True
-
-
-class Moat(Card):
-    cost = 2
-    reaction = True
-    draw = 2
-    name = "Moat"
-
-
-class Chapel(Special_Card):
-    cost = 2
-    description = 'Choose up to 4 cards in your hand to be trashed'
-    def user_prompt(self, player):
-        print(self.description)
-        n = 4
-        values = []
-        print("Your hand: ", player.cards.hand)
-        while n > 0:
-            print("You can trash ",n ,"more cards. Enter card number from 0 to"
-                  ,len(player.cards.hand)-1), " or -1 to stop"
-            play = sys.stdin.readline()
-            if play.isalnum():
-                if int(play) == -1:
-                    break
-                values.append(play)
-            else:
-                print("Please enter a number ")
-        return tuple(values)
-
-    def do_card(self, game, player,info):
-        print("Chapel needs trash")
-        for i in reversed(range(len(info))):
-           player.cards.trash(info[i])
-
-
-
-    name = "Chapel"
-
-
-class Cellar(Special_Card):
-    cost = 2
-    special = True
-    name = "Cellar"
-    def do_card(self, game, player,info):
-        temp = info
-        temp = sorted(temp, reversed=True)
-        for i in temp:
-            player.cards.discard(temp[i])
-
-
-class Village(Card):
-    cost = 3
-    draw = 1
-    actions = 2
-    name = "Village"
-
-
-class Woodcutter(Card):
-    cost = 3
-    buy = 1
-    money = 2
-    name = "Woodcutter"
-
-
-class Workshop(Special_Card):
-    cost = 4
-
-    def do_card(self, game, player, info):
-        card = game.game_pile.card_piles[info]
-        if card.cost <= 3:
-            player.get(game,info)
-
-    name = "Workshop"
-
-
-class Militia(Special_Card):
-    cost = 4
-    attack = True
-    money = 2
-    name = "Militia"
-
-
-    def do_card(self, game, player, info):
-        for i in range(len(game.players)):
-            if game.players[i] is not player:
-                player.do_militia()
-
-
-class Smithy(Card):
-    cost = 4
-    draw = 3
-    name = "Smithy"
-
-
-class Market(Card):
-    cost = 5
-    draw = 1
-    actions = 1
-    gold = 1
-    buy = 1
-    name = "Market"
-
-
-class Mine(Special_Card):
-    cost = 5
-
-    def do_card(self, game, player, info):
-        card = player.cards.hand[info[0]]
-        if card.is_coin:
-            val = card.cost
-            card2 = game.game_pile.all_piles[info[1]]
-            if card2.cost <= val + 3:
-                player.cards.trash(game.game_pile,info[1])
-                player.cards.hand.append(card2)
-                game.game_pile.card_remaining[info[1]] -= 1
-    name = "Mine"
-
-
-class Remodel(Special_Card):
-    cost = 4
-
-    def do_card(self, game, player, info):
-        card1 = player.cards.hand[info[0]]
-        card2 = game.game_pile.card_piles[info[1]]
-        if card1.cost + 2 >= card2.cost:
-            player.cards.hand.trash(info[0])
-            player.get(game,info[1])
-
-    name = "Remodel"
-
-
-class Copper(Coin):
-    cost = 0
-    money = 1
-    name = "Copper"
-
-
-class Silver(Coin):
-    cost = 3
-    money = 2
-    name = "Silver"
-
-
-class Gold(Coin):
-    cost = 6
-    money = 3
-    name = "Gold"
-
-
-class Estate(Vp):
-    cost = 2
-    vp = 1
-    name = "Estate"
-
-
-class Duchy(Vp):
-    cost = 5
-    vp = 3
-    name = "Duchy"
-
-
-class Province(Vp):
-    cost = 8
-    vp = 6
-    name = "Province"
-
-
-class Curse(Vp):
-    cost = 0
-    vp = -1
-    name = "Curse"
-
 
