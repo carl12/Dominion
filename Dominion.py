@@ -30,6 +30,7 @@ class Card:
 class Special_Card(Card):
     special = True
     description = 'Description from special_card, should be overiden'
+    instruction = 'Instruction from special_card should be overriden'
     def do_card(self, game, player, info):
         print("abstract method - do_card")
     def user_prompt(self, player):
@@ -108,11 +109,19 @@ class Woodcutter(Card):
 
 class Workshop(Special_Card):
     cost = 4
+    instruction = 'Enter the number of the item you would like to create (can only cost up to 4)'
+    def user_prompt(self, player):
+        print(self.instruction)
+        input = sys.stdin.readline()
+        if input.isnumeric:
+            #do checks
+            return int(input)
 
     def do_card(self, game, player, info):
         card = game.game_pile.card_piles[info]
         if card.cost <= 3:
             player.get(game,info)
+
 
     name = "Workshop"
 
@@ -122,12 +131,12 @@ class Militia(Special_Card):
     attack = True
     money = 2
     name = "Militia"
-
+    instruction = 'All other players discarding down to 3 cards unless they have defense'
+    def user_prompt(self, player):
+        return
 
     def do_card(self, game, player, info):
-        for i in range(len(game.players)):
-            if game.players[i] is not player:
-                player.do_militia()
+        game.do_militia(player.player_num)
 
 
 class Smithy(Card):
@@ -225,7 +234,7 @@ class Game:
         self.round = 0
         self.finished = False
         for i in range(players):
-            self.players.append(Player(self,self.game_pile,prints))
+            self.players.append(Player(self,self.game_pile,i,prints))
         self.init_ai(ai_type)
         self.curr_player = 0
         self.started = True
@@ -261,7 +270,7 @@ class Game:
         self.finished = False
         self.players = []
         for i in range(length):
-            self.players.append(Player(self, self.game_pile))
+            self.players.append(Player(self, self.game_pile,i))
         self.restart_ai()
         self.curr_player = 0
 
@@ -389,7 +398,7 @@ class Collection:
 
 
 class Player:
-    def __init__(self, game, pileIn, prints = False):
+    def __init__(self, game, pileIn, player_loc, prints = False):
         self.game = game
         self.actions = 1
         self.buys = 1
@@ -398,6 +407,7 @@ class Player:
         self.game_pile = pileIn
         self.cards = Collection(prints)
         self.vp = 3
+        self.player_loc = player_loc
 
     def end_turn(self):
         self.cards.discard_hand()

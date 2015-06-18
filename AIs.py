@@ -213,21 +213,22 @@ class Person(Ai):
             else:
                 print("You have no actions cards available, jumping to buy phase")
                 break
-            play = int(sys.stdin.readline())
-            if play == -1:
+            playLoc = int(sys.stdin.readline())
+            if playLoc == -1:
                 break
-            elif play < len(hand):
-                if hand[play].is_coin:
+            elif playLoc < len(hand):
+                played_card = hand[playLoc]
+                if played_card.is_coin:
                     print("That's a coin")
-                elif hand[play].is_vp:
+                elif played_card.is_vp:
                     print("That's a vp card")
-                elif hand[play].special:
-                    print(hand[play].instruction)
-
+                elif played_card.special:
+                    info = played_card.user_prompt(self.player)
+                    played_card.do_card(self.game,self.player,info)
                 else:
-                    print("playing...", hand[play])
+                    print("playing...", played_card)
                     print(self.player.actions)
-                    self.player.play(play)
+                    self.player.play(playLoc)
 
         self.player.add_treasure()
         while self.player.buys > 0:

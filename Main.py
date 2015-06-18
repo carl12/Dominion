@@ -7,7 +7,7 @@ __author__ = 'Carl-Admin'
 should_print = False
 ties = 0
 print(Dominion.ai_type)
-my_game = Dominion.Game(4,[1,2,2,2], should_print)
+my_game = Dominion.Game(4,[0,2,2,2], should_print)
 for i in range(1):
     my_game.restart()
     if i % 500 == 0:
