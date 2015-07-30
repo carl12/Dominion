@@ -33,7 +33,7 @@ class Special_Card(Card):
     instruction = 'Instruction from special_card should be overriden'
     def do_card(self, game, player, info):
         print("abstract method - do_card")
-    def user_prompt(self, player):
+    def user_prompt(self, game, player):
         print(self.description)
 
 
@@ -55,29 +55,33 @@ class Moat(Card):
 class Chapel(Special_Card):
     cost = 2
     description = 'Choose up to 4 cards in your hand to be trashed'
-    def user_prompt(self, player):
+    def user_prompt(self, game, player):
         print(self.description)
         n = 4
-        values = []
+        trashes = []
         print("Your hand: ", player.cards.hand)
         while n > 0:
-            print("You can trash ",n ,"more cards. Enter card number from 0 to"
-                  ,len(player.cards.hand)-1), " or -1 to stop"
             play = sys.stdin.readline()
-            if play.isalnum():
-                if int(play) == -1:
+            try:
+                val = int(play)
+                if val < 0:
                     break
-                values.append(play)
-            else:
-                print("Please enter a number ")
-        return tuple(values)
+                elif val in trashes:
+                    print("You are already trying to discard that")
+                else:
+                    trashes.append(val)
+                    n -= 1
+                print("You have planned to discard: ",trashes)
+            except ValueError:
+                print("Invalid input")
+        trashes.sort()
+        self.do_card(game,player,trashes)
 
     def do_card(self, game, player,info):
+        """Note: info must be sorted"""
         print("Chapel needs trash")
         for i in reversed(range(len(info))):
            player.cards.trash(info[i])
-
-
 
     name = "Chapel"
 
@@ -86,6 +90,27 @@ class Cellar(Special_Card):
     cost = 2
     special = True
     name = "Cellar"
+    def user_prompt(self, game, player):
+        print("Your hand: ", player.cards.hand)
+        n = len(player.cards.hand)
+        discards = []
+        while n > 1:
+            play = sys.stdin.readline()
+            try:
+                val = int(play)
+                if val < 0:
+                    break
+                elif val in discards:
+                    print("You are already trying to discard that")
+                else:
+                    discards.append(val)
+                    n -= 1
+                print("You have planned to discard: ",trashes)
+            except ValueError:
+                print("Invalid input")
+        discards.sort()
+        self.do_card(game,player,discards)
+
     def do_card(self, game, player,info):
         temp = info
         temp = sorted(temp, reversed=True)
@@ -110,16 +135,29 @@ class Woodcutter(Card):
 class Workshop(Special_Card):
     cost = 4
     instruction = 'Enter the number of the item you would like to create (can only cost up to 4)'
-    def user_prompt(self, player):
+    def user_prompt(self, game, player):
         print(self.instruction)
         input = sys.stdin.readline()
-        if input.isnumeric:
-            #do checks
-            return int(input)
+        while True:
+            try:
+                val = int(input)
+                if val < 0:
+                    print("Please enter a positive number")
+                elif game.game_pile.card_remaining(val) < 0:
+                    print("There are no ", game.game_pile.card_piles(val).name, "left")
+                elif game.game_pile.card_piles.cost > 4:
+                    print("The card must cost 4 or less")
+                else:
+                    break
+            except ValueError:
+                print("Please enter a number")
+        print("You got a", game.game_pile.card_piles(val))
+        self.do_card(game,player,val)
+
 
     def do_card(self, game, player, info):
         card = game.game_pile.card_piles[info]
-        if card.cost <= 3:
+        if card.cost <= 4 and game.game_pile.card_remaining(info) < 0:
             player.get(game,info)
 
 
@@ -132,8 +170,8 @@ class Militia(Special_Card):
     money = 2
     name = "Militia"
     instruction = 'All other players discarding down to 3 cards unless they have defense'
-    def user_prompt(self, player):
-        return
+    def user_prompt(self, game, player):
+        self.do_card(self, game, player, None)
 
     def do_card(self, game, player, info):
         game.do_militia(player.player_num)

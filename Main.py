@@ -1,7 +1,10 @@
 import Dominion
 import random
 import sys
-
+a = "3.2"
+b = "3"
+c = "-3"
+print(a.isdigit(), b.isdigit(),c.isnumeric())
 __author__ = 'Carl-Admin'
 
 should_print = False
