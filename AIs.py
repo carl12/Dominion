@@ -223,8 +223,7 @@ class Person(Ai):
                 elif played_card.is_vp:
                     print("That's a vp card")
                 elif played_card.special:
-                    info = played_card.user_prompt(self.player)
-                    played_card.do_card(self.game,self.player,info)
+                    played_card.user_prompt(self.player)
                 else:
                     print("playing...", played_card)
                     print(self.player.actions)
