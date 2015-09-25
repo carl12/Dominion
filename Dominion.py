@@ -90,6 +90,7 @@ class Cellar(Special_Card):
     cost = 2
     special = True
     name = "Cellar"
+
     def user_prompt(self, game, player):
         print("Your hand: ", player.cards.hand)
         n = len(player.cards.hand)
